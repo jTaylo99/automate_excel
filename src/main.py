@@ -334,45 +334,6 @@ class Workbook():
     def autofit(self):
         self.workbook.ActiveSheet.Columns.AutoFit()
 
-def excel2df(filepath: str, sheet_name: str):
-    """Creates a dataframe based on a provided excel sheet.
-    Arguments:
-        filepath: str, the path to the excel file
-        sheet_name: str, the specific sheet name to be converted
-    Returns:
-        A dataframe based on the sheet specified.
-        """
-    with Workbook(filepath) as excel:
-        temp_path = 'C:\\Windows\\Temp\\tmpExcel.csv'
-        excel.app.Application.DisplayAlerts = False
-        if sheet_name:
-            excel.active_sheet = sheet_name
-        excel.save_as(temp_path)
-    dataframe = pd.read_csv(temp_path)
-    os.unlink(temp_path)
-    return dataframe
-
-
-def validate_file_type(filepath: str) -> str:
-    """Checks if a file is a type that is supported by Microsoft Excel.
-
-    Supported formats are defined in the config file.
-
-    Arguments:
-        filepath: str, the path to a file. Can be full path or absolute.
-
-    Returns:
-        The passed filepath.
-
-    Raises:
-        ExcelError if the file type is not supported.
-    """
-    ext = get_extension(filepath)
-    if ext is not None:
-        if not ext in config.supported_exts:
-            raise ExcelError(f"Filetype {ext} is not a supported format for Microsoft Excel.")
-    return filepath
-
 
 class Sheet():
     """A specific worksheet in a Microsoft Excel workbook.
@@ -403,6 +364,17 @@ class Sheet():
     def name(self, name: str):
         """Renames the worksheet."""
         self.sheet.Name = name
+
+    @property
+    def protected(self):
+        return self.sheet.ProtectContents
+
+    @protected.setter
+    def protected(self, set_to: bool):
+        if set_to:
+            self.sheet.Protect()
+        else:
+            self.sheet.Unprotect()
 
     def to_csv(self, path:str or None=None,
                password: str or None=None,
@@ -450,3 +422,43 @@ def get_extension(filepath: str) -> str:
     """
     ext = ''.join(re.findall('\.[^.]*$', str(filepath)))
     return ext if ext else None
+
+
+def excel2df(filepath: str, sheet_name: str):
+    """Creates a dataframe based on a provided excel sheet.
+    Arguments:
+        filepath: str, the path to the excel file
+        sheet_name: str, the specific sheet name to be converted
+    Returns:
+        A dataframe based on the sheet specified.
+        """
+    with Workbook(filepath) as excel:
+        temp_path = 'C:\\Windows\\Temp\\tmpExcel.csv'
+        excel.app.Application.DisplayAlerts = False
+        if sheet_name:
+            excel.active_sheet = sheet_name
+        excel.save_as(temp_path)
+    dataframe = pd.read_csv(temp_path)
+    os.unlink(temp_path)
+    return dataframe
+
+
+def validate_file_type(filepath: str) -> str:
+    """Checks if a file is a type that is supported by Microsoft Excel.
+
+    Supported formats are defined in the config file.
+
+    Arguments:
+        filepath: str, the path to a file. Can be full path or absolute.
+
+    Returns:
+        The passed filepath.
+
+    Raises:
+        ExcelError if the file type is not supported.
+    """
+    ext = get_extension(filepath)
+    if ext is not None:
+        if not ext in config.supported_exts:
+            raise ExcelError(f"Filetype {ext} is not a supported format for Microsoft Excel.")
+    return filepath
