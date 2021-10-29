@@ -18,6 +18,7 @@
 import os
 import atexit
 import re
+import functools
 
 import win32com.client
 import pywintypes
@@ -335,6 +336,20 @@ class Workbook():
         self.workbook.ActiveSheet.Columns.AutoFit()
 
 
+def run_without_protection(func):
+    """A decorator that allows a function to use a sheet unprotected and then reprotect it once complete. Specifically
+    for use in the Sheet class."""
+    def wrapper_unprotect(*args, **kwargs):
+        sheet = args[0]
+        if sheet.protected:
+            sheet.protected = False
+            func(*args, **kwargs)
+            sheet.protected = True
+        else:
+            func(*args, **kwargs)
+    return wrapper_unprotect
+
+
 class Sheet():
     """A specific worksheet in a Microsoft Excel workbook.
     This object contains attributes and methods for interacting with the worksheet.
@@ -350,6 +365,7 @@ class Sheet():
     """
     def __init__(self, workbook: Workbook, name: str=None):
         self.workbook = workbook
+        self.sheet = None
         if name:
             self.sheet = workbook.app.Worksheets(name)
         else:
@@ -462,3 +478,4 @@ def validate_file_type(filepath: str) -> str:
         if not ext in config.supported_exts:
             raise ExcelError(f"Filetype {ext} is not a supported format for Microsoft Excel.")
     return filepath
+
